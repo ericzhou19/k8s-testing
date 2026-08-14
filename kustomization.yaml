@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - deployment.yaml
+
+# Image Updater（write-back-target: kustomization）会把同 tag 的新 digest
+# 写进这里的 images: 段，例如：
+#   newTag: v1  →  newTag: v1 不变，但 ArgoCD 通过 digest 引用拉新层
+# 初始锁定 ezhou2022/nginx:v1；digest 策略下实际拉取按 registry 最新 sha256。
+images:
+  - name: ezhou2022/nginx
+    newName: ezhou2022/nginx
+    newTag: v1
