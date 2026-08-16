@@ -1,0 +1,67 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: nginx-demo
+  namespace: argocd
+  annotations:
+    # 镜像别名=镜像名（带固定 tag，digest 策略要求写明跟踪哪个 tag）
+    argocd-image-updater.argoproj.io/image-list: nginx=ezhou2022/nginx:v1
+
+    # 固定 tag 跟踪 digest：registry 里 v1 的 sha256 变了就刷新
+    argocd-image-updater.argoproj.io/nginx.update-strategy: digest
+
+    # 写回方式：git（必须，才会改仓库里的 kustomization.yaml）
+    argocd-image-updater.argoproj.io/nginx.write-back-method: git
+
+    # 写回目标：kustomization.yaml（本目录下的那份）
+    argocd-image-updater.argoproj.io/nginx.write-back-target: kustomization
+
+    # tag 不变也要触发 Deployment rollout（digest 更新必开）
+    argocd-image-updater.argoproj.io/nginx.force-update: "true"
+
+    # 扫描间隔（默认 2m，演示可缩短到 1m）
+    argocd-image-updater.argoproj.io/write-back-interval: 1m
+
+    # Git commit 模板
+    argocd-image-updater.argoproj.io/git-commit-message: |
+      chore(image-updater): update nginx to {{.NewTag}}@{{.NewDigest}}
+spec:
+  generators:
+    - list:
+        elements:
+          - cluster: in-cluster
+            url: https://kubernetes.default.svc
+            namespace: demo
+  template:
+    metadata:
+      name: nginx-demo
+      namespace: argocd
+      labels:
+        app.kubernetes.io/name: nginx
+        app.kubernetes.io/managed-by: argocd
+    spec:
+      project: default
+      syncPolicy:
+        automated:
+          prune: true
+          selfHeal: true
+        syncOptions:
+          - CreateNamespace=true
+          - ApplyOutOfSyncOnly=true
+        retry:
+          limit: 5
+          backoff:
+            duration: 5s
+            factor: 2
+            maxDuration: 3m
+      source:
+        # ★ 改成你自己的 Git 仓库地址后推送，再 kubectl apply 本文件
+        repoURL: https://github.com/ericzhou19/k8s-testing.git
+        targetRevision: HEAD
+        path: .   # kustomization.yaml 所在目录
+        kustomize:
+          images:
+            - ezhou2022/nginx:v1
+      destination:
+        server: "{{url}}"
+        namespace: "{{namespace}}"
