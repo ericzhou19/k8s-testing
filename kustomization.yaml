@@ -9,4 +9,4 @@ resources:
 images:
   - name: ezhou2022/nginx
     newTag: v1
-    digest: sha256:5e3372f7d244d8c8e9889ee3903cf0cfbd1ad411bae655ec7328540f6506f2cc
+    digest: sha256:d92690c45c0ec538dca14a3f7037cec258337c03dfd3b6731f294b3fcf6e94d7
